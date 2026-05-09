@@ -1,0 +1,30 @@
+<div class="card metrics-card">
+  <h2>Classification outcome</h2>
+  <div class="split-grid">
+    <div class="metrics-table">
+      <div class="metrics-row"><span>Predicted category</span><b>{{ cls_pred }}</b></div>
+      <div class="metrics-row"><span>Benign probability</span><b>{{ "%.4f"|format(cls_prob_benign) }}</b></div>
+      <div class="metrics-row"><span>Malignant probability</span><b>{{ "%.4f"|format(cls_prob_malignant) }}</b></div>
+    </div>
+    <div class="figure-frame">
+      <img src="{{ cls_bar_uri }}" alt="Classification probability chart" />
+    </div>
+  </div>
+
+  {#
+  <div class="split-grid">
+    <div class="metrics-table">
+      <div class="metrics-row"><span>ROC AUC (reference)</span><b>{% if roc_auc is not none %}{{ "%.3f"|format(roc_auc) }}{% else %}N/A{% endif %}</b></div>
+      <div class="metrics-row"><span>ROC samples used</span><b>{% if roc_n is not none %}{{ roc_n }}{% else %}N/A{% endif %}</b></div>
+      {% if roc_error %}
+      <p class="note">ROC unavailable: {{ roc_error }}</p>
+      {% else %}
+      <p class="note">ROC curve computed fresh from `BUSI_Jpeg`.</p>
+      {% endif %}
+    </div>
+    {% if roc_uri %}
+    <div class="figure-frame"><img src="{{ roc_uri }}" alt="ROC curve" /></div>
+    {% endif %}
+  </div>
+  #}
+</div>

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0369a1" />
+  <title>{{ app_name }} — Batch test</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+
+<body>
+  {% include "components/topbar.html" %}
+
+  <div class="container">
+    <div class="hero card card-hero">
+      <div class="hero-badge">Research &amp; evaluation</div>
+      <h1>Batch detection</h1>
+      <p class="subtitle">
+        Run the same detector as the main workflow on up to <strong>{{ grid_max }}</strong> images at once.
+      </p>
+
+    </div>
+
+    {% if model_error %}
+    <div class="error">Models could not be loaded: {{ model_error }}</div>
+    {% endif %}
+
+    {% if upload_error %}
+    <div class="error">{{ upload_error }}</div>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('batch_test') }}" enctype="multipart/form-data"
+      class="card upload-card batch-run-form">
+      <h2>Upload images</h2>
+      <p class="muted batch-form-hint">PNG, JPEG, WebP, BMP, or TIFF · multiple selection · max {{ grid_max }} files per
+        run</p>
+      <label for="batch-images">Files <span class="muted">(required)</span></label>
+      <input id="batch-images" class="file-input" type="file" name="images"
+        accept="image/png,image/jpeg,image/webp,image/bmp,.tif,.tiff" multiple required />
+      <button type="submit" class="primary-btn">Run batch</button>
+    </form>
+
+    <section class="card batch-results-board" aria-labelledby="batch-results-heading">
+      <h2 id="batch-results-heading">Results</h2>
+      {% if not has_tiles %}
+      <p class="batch-results-empty muted">
+        No batch yet. Choose images above and click <strong>Run batch</strong>; overlays appear here in a {{
+        grid_max }}-slot grid (4&nbsp;×&nbsp;5 on wide screens).
+      </p>
+      {% endif %}
+
+      <div class="batch-static-grid">
+        {% for cell in cells %}
+        {% if not cell.empty %}
+        <article class="batch-static-cell">
+          <div class="batch-static-cell-frame">
+            {% if batch_id is not none and cell.tile_idx is not none %}
+            <img class="batch-static-cell-img"
+              src="{{ url_for('batch_session_tile', batch_id=batch_id, idx=cell.tile_idx) }}" alt="" loading="lazy"
+              decoding="async" />
+            {% endif %}
+          </div>
+          <div class="batch-static-cell-meta">
+            {% if cell.get('ok') %}
+            <div class="batch-cell-head">
+              {% if cell.get('detected') %}
+              <span class="batch-yolo-status batch-yolo-status--hit">Detected</span>
+              <span class="batch-variant-pill" title="Input variant">{{ cell.variant | capitalize }}</span>
+              {% else %}
+              <span class="batch-yolo-status batch-yolo-status--miss">No detection</span>
+              <span class="batch-variant-pill batch-variant-pill--muted">{{ cell.variant | capitalize }}</span>
+              {% endif %}
+            </div>
+            {% if cell.get('detected') %}
+            <p class="batch-static-probs">
+              conf {% if cell.conf is not none %}{{ '%.4f' | format(cell.conf) }}{% else %}—{% endif %}
+              <span class="batch-prob-sep">·</span>
+              th {% if cell.used_th is not none %}{{ '%g' | format(cell.used_th) }}{% else %}—{% endif %}
+            </p>
+            {% endif %}
+            {% else %}
+            <p class="batch-card-err">{{ (cell.error or 'Error')[:100] }}{% if cell.error and cell.error|length > 100
+              %}…{% endif %}</p>
+            {% endif %}
+            {% if cell.filename %}
+            <p class="batch-static-fname" title="{{ cell.filename }}">{{ cell.filename }}</p>
+            {% endif %}
+          </div>
+        </article>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <footer class="footer-note">© 2026 Tumor Sight Platform. Not for clinical use.</footer>
+</body>
+
+</html>

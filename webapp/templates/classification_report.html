@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0369a1" />
+  <title>{{ app_name }} - Classification Report</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+
+<body>
+  {% include "components/topbar.html" %}
+  <div class="container">
+    <div class="card">
+      <h2>Input image</h2>
+      <img src="{{ input_preview_uri }}" class="input-preview" alt="Input image" />
+    </div>
+
+    <div class="card metrics-card">
+      <h2>YOLO detection</h2>
+      <div class="split-grid">
+        <div class="figure-frame"><img src="{{ detection_overlay_uri }}" alt="YOLO overlay" /></div>
+        <div class="metrics-table">
+          <div class="metrics-row"><span>AI certainty (best confidence)</span><b>{{ "%.4f"|format(yolo_conf) }}</b>
+          </div>
+          <div class="metrics-row"><span>Detected suspicious regions</span><b>{{ yolo_num_boxes }}</b></div>
+          <div class="metrics-row"><span>Estimated suspicious area</span><b>{% if yolo_area_pct is not none %}{{
+              "%.2f"|format(yolo_area_pct) }}%{% else %}N/A{% endif %}</b></div>
+          <div class="metrics-row"><span>Technical threshold used</span><b>{% if yolo_used_th is not none %}{{
+              "%.3f"|format(yolo_used_th) }}{% else %}N/A{% endif %}</b></div>
+          <div class="metrics-row"><span>Image variant used</span><b>{{ yolo_variant }}</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card metrics-card">
+      <h2>U-Net segmentation</h2>
+      <div class="seg-static-preview">
+        <img src="{{ seg_overlay_uri }}" alt="U-Net segmentation mask overlay" loading="lazy" />
+      </div>
+      <div class="metrics-table">
+        <div class="metrics-row"><span>Estimated tumor area (pixels)</span><b>{{ seg_area }}</b></div>
+        <div class="metrics-row"><span>Estimated tumor area (% of image)</span><b>{{ "%.2f"|format(seg_area_pct) }}%</b>
+        </div>
+      </div>
+    </div>
+
+    <div class="card metrics-card">
+      <h2>Classification outcome</h2>
+      <div class="split-grid">
+        <div class="metrics-table">
+          <div class="metrics-row"><span>Predicted category</span><b>{{ cls_pred }}</b></div>
+          <div class="metrics-row"><span>Benign probability</span><b>{{ "%.4f"|format(cls_prob_benign) }}</b></div>
+          <div class="metrics-row"><span>Malignant probability</span><b>{{ "%.4f"|format(cls_prob_malignant) }}</b>
+          </div>
+        </div>
+        <div class="figure-frame"><img src="{{ cls_bar_uri }}" alt="Classification probabilities" /></div>
+      </div>
+    </div>
+  </div>
+  <footer class="footer-note">© 2026 Tumor Sight Platform. Not for clinical use.</footer>
+</body>
+
+</html>
