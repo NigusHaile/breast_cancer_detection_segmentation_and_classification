@@ -10,7 +10,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from flask import Flask, abort, redirect, render_template, request, send_file, url_for
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 from torchvision import models
 from ultralytics import YOLO
 
@@ -328,7 +328,8 @@ def _load_models_once() -> None:
         _models["unet"] = unet
 
         cls = models.resnet18(weights=None)
-        cls.fc = nn.Linear(cls.fc.in_features, 2)
+        # Must match the head built in project.ipynb (dropout + linear)
+        cls.fc = nn.Sequential(nn.Dropout(p=0.3), nn.Linear(cls.fc.in_features, 2))
         cls.load_state_dict(torch.load(CLS_PATH, map_location=DEVICE, weights_only=True))
         cls = cls.to(DEVICE)
         cls.eval()
@@ -409,7 +410,9 @@ def predict_yolo(img_rgb):
 
     for variant_name, variant_img in variants:
         for th in thresholds:
-            results = yolo_model.predict(source=variant_img, conf=th, imgsz=960, verbose=False)
+            # Ultralytics treats numpy input as BGR
+            variant_bgr = cv2.cvtColor(variant_img, cv2.COLOR_RGB2BGR)
+            results = yolo_model.predict(source=variant_bgr, conf=th, imgsz=640, verbose=False)
             boxes = results[0].boxes
             if boxes is None or len(boxes) == 0:
                 continue
@@ -557,7 +560,15 @@ def analyze():
                 error="You must read and accept the User Notice & Consent before proceeding.",
             )
 
-        image_pil = Image.open(file.stream).convert("RGB")
+        try:
+            image_pil = Image.open(file.stream).convert("RGB")
+        except (UnidentifiedImageError, OSError):
+            return render_template(
+                "index.html",
+                app_name=APP_NAME,
+                error="That file could not be read as an image. Please upload a valid image.",
+            )
+
         img_rgb = np.array(image_pil)
         case_id = save_uploaded_image(image_pil)
 
@@ -605,7 +616,8 @@ def analyze():
         )
 
     # ----- Stage transitions (same URL) -----
-    if not case_id or not stage:
+    # case_id comes from the form and builds file paths, so it must be a real UUID
+    if not _safe_uuid(case_id) or not stage:
         return redirect(url_for("index", message="Session expired. Please upload again."))
 
     img_rgb = load_case_image(case_id)
